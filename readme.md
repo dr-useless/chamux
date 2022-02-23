@@ -8,7 +8,7 @@ func dialer() {
   conn, _ := net.Dial("unix", "/tmp/example")
 
   // implement chamux.Serializer to use your own encoding
-  mc := chamux.NewMConn(conn, chamux.GobSerializer{}, 2048)
+  mc := chamux.NewMConn(conn, chamux.Gob{}, 2048)
 
   // get a channel for a topic named: coffee
   topic := chamux.NewTopic("coffee")
@@ -40,7 +40,7 @@ func listener() {
       for {
         msg := []byte("we need more coffee")
         frame := chamux.NewFrame(msg, "coffee")
-        mc.Publish(chamux.GobSerializer{}, frame)
+        mc.Publish(chamux.Gob{}, frame)
       }
     }(mc)
   }
@@ -48,7 +48,7 @@ func listener() {
 ```
 
 ## Serialization
-This package exports `chamux.GobSerializer{}`. If you want to use another encoding, simply implement `Serializer`.
+This package exports `Gob{}`. If you want to use another encoding, simply implement `Serializer`.
 ```go
 type Serializer interface {
   Serialize(f *Frame) ([]byte, error)

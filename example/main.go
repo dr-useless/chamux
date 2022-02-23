@@ -19,7 +19,7 @@ func main() {
 	<-ready
 
 	// connect to the listener
-	mc, err := chamux.Dial("unix", "/tmp/example", chamux.GobSerializer{}, 2048)
+	mc, err := chamux.Dial("unix", "/tmp/example", chamux.Gob{}, 2048)
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +65,7 @@ func makeListener() chan bool {
 			}
 
 			// implement chamux.Serializer to use another encoding
-			mc := chamux.NewMConn(conn, chamux.GobSerializer{}, 2048)
+			mc := chamux.NewMConn(conn, chamux.Gob{}, 2048)
 
 			go func(chamux.MConn) {
 				for {
@@ -77,7 +77,7 @@ func makeListener() chan bool {
 
 					// Publish(s,f) serializes the frame to a byte slice,
 					// and then writes the slice to the underlying connection.
-					mc.Publish(chamux.GobSerializer{}, frame)
+					mc.Publish(chamux.Gob{}, frame)
 				}
 			}(mc)
 		}
