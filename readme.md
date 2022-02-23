@@ -40,7 +40,7 @@ func listener() {
       for {
         msg := []byte("we need more coffee")
         frame := chamux.NewFrame(msg, "coffee")
-        mc.Publish([]byte(chamux.GobSerializer{}, frame)
+        mc.Publish(chamux.GobSerializer{}, frame)
       }
     }(mc)
   }
