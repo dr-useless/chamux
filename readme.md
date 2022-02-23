@@ -7,7 +7,7 @@ func dialer() {
   // ignore the errors for brevity (it's an example)
   conn, _ := net.Dial("unix", "/tmp/example")
 
-  // implement chamux.Serializer to use your own encoding
+  // implement chamux.Serializer to use another
   mc := chamux.NewMConn(conn, chamux.Gob{}, 2048)
 
   // get a channel for a topic named: coffee
