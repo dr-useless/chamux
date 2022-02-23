@@ -6,7 +6,7 @@ type Frame struct {
 	Body  []byte
 }
 
-func MakeFrame(body []byte, topicName string) *Frame {
+func NewFrame(body []byte, topicName string) *Frame {
 	return &Frame{
 		Topic: topicName,
 		Body:  body,

@@ -58,28 +58,26 @@ func makeListener() chan bool {
 		}
 		ready <- true
 
-		// implement chamux.Serializer to use another encoding
-		serializer := chamux.GobSerializer{}
-
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
 				panic(err)
 			}
-			mc := chamux.NewMConn(conn, serializer, 2048)
+
+			// implement chamux.Serializer to use another encoding
+			mc := chamux.NewMConn(conn, chamux.GobSerializer{}, 2048)
 
 			go func(chamux.MConn) {
-				serializer := chamux.GobSerializer{}
 				for {
 					time.Sleep(time.Second)
 					msg := []byte(getRandomName())
 
 					// make a new frame with the message & topic name
-					frame := chamux.MakeFrame(msg, "dog")
+					frame := chamux.NewFrame(msg, "dog")
 
 					// Publish(s,f) serializes the frame to a byte slice,
 					// and then writes the slice to the underlying connection.
-					mc.Publish(serializer, frame)
+					mc.Publish(chamux.GobSerializer{}, frame)
 				}
 			}(mc)
 		}

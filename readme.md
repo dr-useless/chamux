@@ -38,7 +38,9 @@ func listener() {
     // send lots of messages about coffee
     go func(chamux.MConn) {
       for {
-        mc.Publish([]byte("we need more", "coffee")
+        msg := []byte("we need more coffee")
+        frame := chamux.NewFrame(msg, "coffee")
+        mc.Publish([]byte(chamux.GobSerializer{}, frame)
       }
     }(mc)
   }
