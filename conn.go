@@ -2,7 +2,7 @@ package chamux
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"net"
 	"sync"
 )
@@ -100,13 +100,13 @@ loop:
 
 			frame, err := mc.ser.Deserialize(buf)
 			if err != nil {
-				log.Println(pf+"error deserializing frame:", err)
+				fmt.Println(pf + err.Error())
 				continue
 			}
 
 			topic := mc.topics[frame.Topic]
 			if topic == nil {
-				log.Println(pf+"unknown topic:", frame.Topic)
+				fmt.Println(pf+"unknown topic:", frame.Topic)
 				continue
 			}
 
