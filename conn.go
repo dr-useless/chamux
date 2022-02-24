@@ -9,7 +9,8 @@ import (
 	"time"
 )
 
-const pf = "mconn: "
+const PF = "mconn: "
+const SPLIT_MARKER = "+END"
 
 // Multiplexed connection.
 // Communication is divided across a range of named topics.
@@ -69,7 +70,7 @@ func (mc *MConn) Close() error {
 func (mc *MConn) AddTopic(t *Topic) error {
 	mc.mu.Lock()
 	if mc.topics[t.name] != nil {
-		return errors.New(pf + "already has a topic with that name")
+		return errors.New(PF + "already has a topic with that name")
 	}
 	mc.topics[t.name] = t
 	mc.mu.Unlock()
@@ -84,7 +85,7 @@ func (mc *MConn) Publish(f *Frame) error {
 	}
 
 	// append marker for split function
-	data = append(data, []byte("+END")...)
+	data = append(data, []byte(SPLIT_MARKER)...)
 
 	_, err = mc.conn.Write(data)
 	return err
@@ -94,7 +95,7 @@ func (mc *MConn) Publish(f *Frame) error {
 // then sends the data on the topic sub channels
 func (mc *MConn) read() {
 	scan := bufio.NewScanner(mc.conn)
-	scan.Split(splitFunc)
+	scan.Split(splitPlusEnd)
 loop:
 	for scan.Scan() {
 		select {
@@ -117,13 +118,13 @@ loop:
 
 			frame, err := mc.ser.Deserialize(frameBytes)
 			if err != nil {
-				fmt.Println(pf + err.Error())
+				fmt.Println(PF + err.Error())
 				continue
 			}
 
 			topic := mc.topics[frame.Topic]
 			if topic == nil {
-				fmt.Println(pf+"unknown topic:", frame.Topic)
+				fmt.Println(PF+"unknown topic:", frame.Topic)
 				continue
 			}
 

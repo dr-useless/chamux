@@ -1,29 +1,25 @@
 package chamux
 
 // Searches for +END
-func splitFunc(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func splitPlusEnd(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	// That means we've scanned to the end
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
-	// search for +END
-	var gotPlus, gotE, gotN bool
+	var gotE, gotN bool
 	var prev byte
 	for i, b := range data {
-		switch {
-		case b == '+':
-			prev = b
-			gotPlus = true
-		case gotPlus && b == 'E' && prev == '+':
-			prev = b
+		if prev == '+' && b == 'E' {
 			gotE = true
-		case gotPlus && gotE && b == 'N' && prev == 'E':
-			prev = b
+		} else if gotE && prev == 'E' && b == 'N' {
 			gotN = true
-		case gotPlus && gotE && gotN && b == 'D' && prev == 'N':
-			return i + 1, data[:len(data)-4], nil
+		} else if gotN && prev == 'N' && b == 'D' {
+			return i + 1, data[:i-3], nil
+		} else {
+			gotE = false
+			gotN = false
 		}
-		gotPlus = false
+		prev = b
 	}
 	// The reader contents processed here are all read out,
 	// but the contents are not empty, so the remaining data needs to be returned.
