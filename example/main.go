@@ -18,8 +18,8 @@ func main() {
 	ready := makeListener()
 	<-ready
 
-	// connect to the listener
-	mc, err := chamux.Dial("unix", "/tmp/example", chamux.Gob{}, 2048)
+	// connect to the listener, using the defaults
+	mc, err := chamux.Dial("unix", "/tmp/example", chamux.Gob{}, chamux.Options{})
 	if err != nil {
 		panic(err)
 	}
@@ -65,7 +65,7 @@ func makeListener() chan bool {
 			}
 
 			// implement chamux.Serializer to use another encoding
-			mc := chamux.NewMConn(conn, chamux.Gob{}, 2048)
+			mc := chamux.NewMConn(conn, chamux.Gob{}, chamux.Options{})
 
 			go func(chamux.MConn) {
 				for {

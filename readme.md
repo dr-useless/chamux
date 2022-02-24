@@ -8,7 +8,7 @@ func dialer() {
   conn, _ := net.Dial("unix", "/tmp/example")
 
   // implement chamux.Serializer to use another
-  mc := chamux.NewMConn(conn, chamux.Gob{}, 2048)
+  mc := chamux.NewMConn(conn, chamux.Gob{}, chamux.Options{})
 
   // get a channel for a topic named: coffee
   topic := chamux.NewTopic("coffee")
@@ -33,14 +33,14 @@ func listener() {
   listener, _ := net.Listen("unix", "/tmp/example")
   for {
     conn, _ := listener.Accept()
-    mc := chamux.NewMConn(conn, 2048)
+    mc := chamux.NewMConn(conn, chamux.Gob{}, chamux.Options{})
 
     // send lots of messages about coffee
     go func(chamux.MConn) {
       for {
         msg := []byte("we need more coffee")
         frame := chamux.NewFrame(msg, "coffee")
-        mc.Publish(chamux.Gob{}, frame)
+        mc.Publish(frame)
       }
     }(mc)
   }

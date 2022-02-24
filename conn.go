@@ -1,10 +1,12 @@
 package chamux
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"net"
 	"sync"
+	"time"
 )
 
 const pf = "mconn: "
@@ -13,26 +15,33 @@ const pf = "mconn: "
 // Communication is divided across a range of named topics.
 // It's safe to call all methods across goroutines.
 type MConn struct {
-	conn       net.Conn
-	ser        Serializer
-	bufferSize int
-	topics     map[string]*Topic
-	mu         *sync.Mutex
-	close      chan bool
+	conn   net.Conn
+	ser    Serializer
+	topics map[string]*Topic
+	mu     *sync.Mutex
+	close  chan bool
 }
 
-// Returns a new MConn wrapping the given net.Conn.
-// Set bufferSize to the maximum message length you want to receive.
-func NewMConn(conn net.Conn, ser Serializer, bufferSize int) MConn {
+type Options struct {
+	ReadDeadline time.Duration
+}
+
+// Returns a new MConn wrapping the given net.Conn
+func NewMConn(conn net.Conn, ser Serializer, opt Options) MConn {
 	mc := MConn{
-		conn:       conn,
-		ser:        ser,
-		bufferSize: bufferSize,
-		topics:     make(map[string]*Topic),
-		mu:         new(sync.Mutex),
-		close:      make(chan bool, 1),
+		conn:   conn,
+		ser:    ser,
+		topics: make(map[string]*Topic),
+		mu:     new(sync.Mutex),
+		close:  make(chan bool, 1),
 	}
+
+	if opt.ReadDeadline != 0 {
+		mc.conn.SetReadDeadline(time.Now().Add(opt.ReadDeadline))
+	}
+
 	go mc.read()
+
 	return mc
 }
 
@@ -43,11 +52,13 @@ func NewMConn(conn net.Conn, ser Serializer, bufferSize int) MConn {
 // conn, _ := net.Dial(network, address)
 //
 // mc, _ := NewMConn(conn, s, bufferSize)
-func Dial(network, address string, s Serializer, bufferSize int) (MConn, error) {
+func Dial(network, address string, s Serializer, opt Options) (MConn, error) {
 	conn, err := net.Dial(network, address)
-	return NewMConn(conn, s, bufferSize), err
+	return NewMConn(conn, s, opt), err
 }
 
+// Closes all subscription channels,
+// then closes the underlying connection
 func (mc *MConn) Close() error {
 	mc.close <- true
 	return mc.conn.Close()
@@ -71,6 +82,10 @@ func (mc *MConn) Publish(f *Frame) error {
 	if err != nil {
 		return err
 	}
+
+	// append marker for split function
+	data = append(data, []byte("+END")...)
+
 	_, err = mc.conn.Write(data)
 	return err
 }
@@ -78,9 +93,10 @@ func (mc *MConn) Publish(f *Frame) error {
 // Reads & decodes incomming frames,
 // then sends the data on the topic sub channels
 func (mc *MConn) read() {
-	buf := make([]byte, mc.bufferSize)
+	scan := bufio.NewScanner(mc.conn)
+	scan.Split(splitFunc)
 loop:
-	for {
+	for scan.Scan() {
 		select {
 		case <-mc.close:
 			for _, topic := range mc.topics {
@@ -92,13 +108,14 @@ loop:
 			break loop
 
 		default:
-			_, err := mc.conn.Read(buf)
-			if err != nil {
+			frameBytes := scan.Bytes()
+
+			if frameBytes == nil {
 				mc.Close()
 				continue
 			}
 
-			frame, err := mc.ser.Deserialize(buf)
+			frame, err := mc.ser.Deserialize(frameBytes)
 			if err != nil {
 				fmt.Println(pf + err.Error())
 				continue
