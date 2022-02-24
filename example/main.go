@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/dr-useless/chamux"
+	"github.com/intob/chamux"
 )
 
 func main() {
