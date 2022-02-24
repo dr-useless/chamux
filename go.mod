@@ -1,3 +1,3 @@
-module github.com/dr-useless/chamux
+module github.com/intob/chamux
 
 go 1.17
