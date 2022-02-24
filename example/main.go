@@ -25,9 +25,9 @@ func main() {
 	}
 
 	// create a topic
-	topic := chamux.NewTopic("dog")
+	topic := chamux.NewTopic("coffee")
 
-	// get a channel for messages about dogs
+	// get a channel for messages about coffee
 	channel := topic.Subscribe()
 
 	// register our topic
@@ -42,9 +42,9 @@ loop:
 		case <-sigint:
 			mc.Close()
 			break loop
-		case dog := <-channel:
+		case msg := <-channel:
 			// do something with the messages
-			log.Println("dog: " + string(dog))
+			log.Println("coffee: " + string(msg))
 		}
 	}
 }
@@ -70,17 +70,24 @@ func makeListener() chan bool {
 			go func(chamux.MConn) {
 				for {
 					time.Sleep(time.Second)
-					msg := []byte(getRandomName())
+					msg := []byte(getRandomCoffeeStrain())
 
 					// make a new frame with the message & topic name
-					frame := chamux.NewFrame(msg, "dog")
+					frame := chamux.NewFrame(msg, "coffee")
 
-					// Publish(s,f) serializes the frame to a byte slice,
+					// Publish(f) serializes the frame to a byte slice,
 					// and then writes the slice to the underlying connection.
-					mc.Publish(chamux.Gob{}, frame)
+					mc.Publish(frame)
 				}
 			}(mc)
 		}
 	}(ready)
 	return ready
+}
+
+func getRandomCoffeeStrain() string {
+	strains := []string{"Arabica", "Robusta", "Liberica", "Bourbon",
+		"Catimor", "Catuai", "Caturra", "Heirloom", "Geisha", "Mundo Novo",
+		"Timor", "Typica", "Variedad Colombia", "Yellow Bourbon"}
+	return strains[rand.Intn(len(strains)-1)]
 }

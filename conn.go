@@ -14,6 +14,7 @@ const pf = "mconn: "
 // It's safe to call all methods across goroutines.
 type MConn struct {
 	conn       net.Conn
+	ser        Serializer
 	bufferSize int
 	topics     map[string]*Topic
 	mu         *sync.Mutex
@@ -22,15 +23,16 @@ type MConn struct {
 
 // Returns a new MConn wrapping the given net.Conn.
 // Set bufferSize to the maximum message length you want to receive.
-func NewMConn(conn net.Conn, s Serializer, bufferSize int) MConn {
+func NewMConn(conn net.Conn, ser Serializer, bufferSize int) MConn {
 	mc := MConn{
 		conn:       conn,
+		ser:        ser,
 		bufferSize: bufferSize,
 		topics:     make(map[string]*Topic),
 		mu:         new(sync.Mutex),
 		close:      make(chan bool, 1),
 	}
-	go mc.read(s)
+	go mc.read()
 	return mc
 }
 
@@ -51,7 +53,7 @@ func (mc *MConn) Close() error {
 	return mc.conn.Close()
 }
 
-// Add a named topic to MConn.
+// Adds a named topic to MConn.
 // Returns an error if there is already a topic with the same name.
 func (mc *MConn) AddTopic(t *Topic) error {
 	mc.mu.Lock()
@@ -63,9 +65,9 @@ func (mc *MConn) AddTopic(t *Topic) error {
 	return nil
 }
 
-// Send a message for a given topic name.
-func (mc *MConn) Publish(s Serializer, f *Frame) error {
-	data, err := s.Serialize(f)
+// Serializes & writes a Frame to the underlying connection
+func (mc *MConn) Publish(f *Frame) error {
+	data, err := mc.ser.Serialize(f)
 	if err != nil {
 		return err
 	}
@@ -75,7 +77,7 @@ func (mc *MConn) Publish(s Serializer, f *Frame) error {
 
 // Reads & decodes incomming frames,
 // then sends the data on the topic sub channels
-func (mc *MConn) read(s Serializer) {
+func (mc *MConn) read() {
 	buf := make([]byte, mc.bufferSize)
 loop:
 	for {
@@ -96,7 +98,7 @@ loop:
 				continue
 			}
 
-			frame, err := s.Deserialize(buf)
+			frame, err := mc.ser.Deserialize(buf)
 			if err != nil {
 				log.Println(pf+"error deserializing frame:", err)
 				continue
