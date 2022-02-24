@@ -94,7 +94,7 @@ loop:
 		default:
 			_, err := mc.conn.Read(buf)
 			if err != nil {
-				log.Println(pf+"error reading from conn:", err)
+				mc.Close()
 				continue
 			}
 
